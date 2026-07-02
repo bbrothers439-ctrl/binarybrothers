@@ -1,0 +1,153 @@
+import { useState, useEffect, useRef } from "react";
+import {
+  useCreateChatSession, useGetChatMessages, useSendChatMessage, useGetChatSession,
+  getGetChatMessagesQueryKey, getGetChatSessionQueryKey
+} from "@workspace/api-client-react";
+import { Send, Terminal, User, Sparkles, Loader2 } from "lucide-react";
+
+export function LiveChat() {
+  const [sessionId, setSessionId] = useState<string | null>(
+    localStorage.getItem("binary_brothers_session")
+  );
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [inputMessage, setInputMessage] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const createSession = useCreateChatSession();
+
+  const { data: messages = [], isLoading: isLoadingMessages } = useGetChatMessages(
+    sessionId || "",
+    { query: { enabled: !!sessionId, refetchInterval: 3000, queryKey: getGetChatMessagesQueryKey(sessionId || "") } }
+  );
+
+  const { data: sessionData } = useGetChatSession(sessionId || "", {
+    query: { enabled: !!sessionId, queryKey: getGetChatSessionQueryKey(sessionId || "") }
+  });
+
+  const sendMessage = useSendChatMessage();
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleStartChat = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !email) return;
+    createSession.mutate(
+      { data: { clientName: name, clientEmail: email } },
+      {
+        onSuccess: (data) => { setSessionId(data.id); localStorage.setItem("binary_brothers_session", data.id); },
+        onError:   ()     => { localStorage.removeItem("binary_brothers_session"); }
+      }
+    );
+  };
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputMessage.trim() || !sessionId) return;
+    const content = inputMessage;
+    setInputMessage("");
+    sendMessage.mutate({ sessionId, data: { sender: "client", content } });
+  };
+
+  // ── Init form ──────────────────────────────────────────────────────────────
+  if (!sessionId) {
+    return (
+      <div className="glass-panel rounded-2xl overflow-hidden flex flex-col h-[500px]">
+        <div className="bg-primary/10 border-b border-white/5 p-4 flex items-center gap-3">
+          <Terminal className="w-5 h-5 text-primary" />
+          <h3 className="font-display font-semibold text-white">Initialize Comms</h3>
+        </div>
+        <div className="p-6 flex-1 flex flex-col justify-center">
+          <div className="text-center mb-6">
+            <h4 className="text-lg font-medium text-white mb-2">Connect to Binary Brothers</h4>
+            <p className="text-sm text-white/60">Enter your credentials to open a secure channel.</p>
+          </div>
+          <form onSubmit={handleStartChat} className="space-y-4">
+            <input type="text" required value={name} onChange={(e) => setName(e.target.value)}
+              placeholder="Designation (Name)"
+              className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all" />
+            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+              placeholder="Signal Address (Email)"
+              className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all" />
+            <button type="submit" disabled={createSession.isPending}
+              className="w-full bg-primary text-primary-foreground font-semibold py-3 rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,240,255,0.2)]">
+              {createSession.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+              {createSession.isPending ? "Connecting..." : "Open Channel"}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Active session ─────────────────────────────────────────────────────────
+  return (
+    <div className="glass-panel rounded-2xl overflow-hidden flex flex-col h-[600px] border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+      <div className="bg-white/5 border-b border-white/10 p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center">
+              <Terminal className="w-4 h-4 text-primary" />
+            </div>
+            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-background rounded-full" />
+          </div>
+          <div>
+            <h3 className="font-display font-semibold text-white text-sm">Binary Brothers Core</h3>
+            <p className="text-xs text-green-400 font-mono">System Online</p>
+          </div>
+        </div>
+        <button onClick={() => { localStorage.removeItem("binary_brothers_session"); setSessionId(null); }}
+          className="text-xs text-white/40 hover:text-white transition-colors">Disconnect</button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Static greeting */}
+        <div className="flex gap-3 max-w-[85%]">
+          <div className="w-8 h-8 rounded bg-primary/20 shrink-0 flex items-center justify-center self-end mb-1">
+            <Terminal className="w-4 h-4 text-primary" />
+          </div>
+          <div className="bg-white/5 border border-white/10 rounded-2xl rounded-bl-sm px-4 py-3 text-white/90 text-sm">
+            Signal established{sessionData?.clientName ? `, ${sessionData.clientName}` : ""}. How can we construct your future today?
+          </div>
+        </div>
+
+        {isLoadingMessages && messages.length === 0
+          ? <div className="flex justify-center p-4"><Loader2 className="w-5 h-5 text-primary animate-spin opacity-50" /></div>
+          : messages.map((msg) => (
+              <div key={msg.id} className={`flex gap-3 max-w-[85%] ${msg.sender === "client" ? "ml-auto flex-row-reverse" : "mr-auto"}`}>
+                <div className={`w-8 h-8 rounded shrink-0 flex items-center justify-center self-end mb-1 ${msg.sender === "client" ? "bg-white/10" : "bg-primary/20"}`}>
+                  {msg.sender === "client" ? <User className="w-4 h-4 text-white/60" /> : <Terminal className="w-4 h-4 text-primary" />}
+                </div>
+                <div className={`px-4 py-3 text-sm ${msg.sender === "client" ? "bg-primary text-primary-foreground rounded-2xl rounded-br-sm" : "bg-white/5 border border-white/10 text-white/90 rounded-2xl rounded-bl-sm"}`}>
+                  {msg.content}
+                </div>
+              </div>
+            ))
+        }
+
+        {/* Typing indicator */}
+        {messages.length > 0 && messages[messages.length - 1].sender === "client" && (
+          <div className="flex gap-3 max-w-[85%]">
+            <div className="w-8 h-8 rounded bg-primary/20 shrink-0 flex items-center justify-center self-end mb-1">
+              <Terminal className="w-4 h-4 text-primary" />
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl rounded-bl-sm px-4 py-4 flex items-center gap-1.5">
+              {[0, 150, 300].map((delay) => (
+                <div key={delay} className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: `${delay}ms` }} />
+              ))}
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="p-4 bg-black/20 border-t border-white/5">
+        <form onSubmit={handleSendMessage} className="flex gap-2">
+          <input type="text" value={inputMessage} onChange={(e) => setInputMessage(e.target.value)}
+            placeholder="Transmit message..."
+            className="flex-1 bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all" />
+          <button type="submit" disabled={!inputMessage.trim() **…**
+
+_This response is too long to display in full._
