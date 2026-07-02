@@ -1,0 +1,55 @@
+import { Layout } from "@/components/layout/Layout";
+import { motion } from "framer-motion";
+import { MapPin, Mail, TerminalSquare, Cpu, Globe } from "lucide-react";
+
+export default function About() {
+  return (
+    <Layout>
+      <section className="pt-32 pb-20 relative">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
+              <div className="inline-flex items-center gap-2 text-primary font-mono text-sm tracking-wider uppercase mb-6">
+                <TerminalSquare className="w-4 h-4" /><span>Origin Story</span>
+              </div>
+              <h1 className="text-4xl md:text-6xl font-display font-bold text-white mb-6">
+                Born in Dhaka.<br/><span className="text-white/40">Built for the Global Grid.</span>
+              </h1>
+              <div className="space-y-6 text-lg text-white/70 leading-relaxed">
+                <p>Binary Brothers isn't just an agency; it's a computational collective. Founded with the vision that the future of web development is automated, intelligent, and fiercely precise.</p>
+                <p>We utilize cutting-edge AI generation tools to scaffold, design, and deploy applications at a speed that traditional humans simply cannot match. We act as the orchestrators of the AI, ensuring your brand's soul translates perfectly into machine code.</p>
+                <p>Our mission: provide enterprise-grade web infrastructure to businesses of all sizes, managed dynamically by our systems.</p>
+              </div>
+            </motion.div>
+
+            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
+              <div className="glass-panel p-8 md:p-12 rounded-3xl relative overflow-hidden group">
+                <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/20 blur-[80px] rounded-full group-hover:bg-primary/30 transition-colors duration-700" />
+                <h3 className="text-2xl font-display font-bold text-white mb-8 flex items-center gap-3">
+                  <Globe className="w-6 h-6 text-primary" />Mission Control
+                </h3>
+                <div className="space-y-8">
+                  {[
+                    { icon: MapPin, label: "Location", content: <p className="text-white font-medium">145/1 Sonarkhola Dakshin Khan,<br/>Dhaka 1230, Bangladesh</p> },
+                    { icon: Mail,   label: "Direct Comms", content: <a href="mailto:bbrothers439@gmail.com" className="text-white font-medium hover:text-primary transition-colors">bbrothers439@gmail.com</a> },
+                    { icon: Cpu,    label: "Status", content: <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-primary animate-pulse" /><span className="text-white font-medium">Accepting new payloads</span></div> },
+                  ].map(({ icon: Icon, label, content }) => (
+                    <div key={label} className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                        <Icon className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-mono text-white/50 uppercase tracking-wider mb-1">{label}</h4>
+                        {content}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+    </Layout>
+  );
+}
